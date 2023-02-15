@@ -85,7 +85,7 @@ class WarpSampler(object):
 
 def evaluate(model, dataset, args):
 
-    [train, valid, test, usernum, itemnum, yearnum, monthnum, daynum] = copy.deepcopy(dataset.split_train_and_test())
+    [train, valid, test, usernum, itemnum, yearnum, monthnum, daynum, user_test_all] = copy.deepcopy(dataset.split_train_and_test())
     NDCG = 0.0
     HT = 0.0
     MRR = 0.0
