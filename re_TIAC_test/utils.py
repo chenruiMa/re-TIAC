@@ -119,7 +119,7 @@ class DateSet(object):
                 user_valid[user].append(self.User_train_cate[user][-2])
                 user_test[user] = []
                 user_test[user].append(self.User_train_cate[user][-1])
-                user_test_all[user] = self.User_train[user][:-1]
+                user_test_all[user] = self.User_train_cate[user][:-1]
 
         return [user_train, user_valid, user_test,self.cate_num,user_test_all]
 
