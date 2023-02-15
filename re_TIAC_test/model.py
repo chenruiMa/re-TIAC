@@ -93,8 +93,8 @@ class HTP(torch.nn.Module):
             uc_adj = self.uc_adj_test
         # item embedding
         user_emb ,items_emb = self.UI(ui_adj)
-        # user_emb, categry_emb = self.UC(self.uc_adj)
-        # con_loss2 = self.SSL_ci(user_emb , user_emb_c)
+        user_emb_c, categry_emb = self.UC(uc_adj)
+        con_loss2 = self.SSL_ci(user_emb , user_emb_c)
         
         # items_emb = self.item_emb.weight
         seqs = items_emb[log_seqs].to(self.dev)
@@ -165,7 +165,7 @@ class HTP(torch.nn.Module):
         # Fusion
         log_feats = E_recom+self.last_layernorm(Fu)
 #         log_feats = E_recom
-        return log_feats, self.beta*con_loss, items_emb
+        return log_feats, self.beta * con_loss + self.beta * con_loss2, items_emb
 
     def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs):  # for training
         log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day,'1')
