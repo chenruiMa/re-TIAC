@@ -1,0 +1,17 @@
+abs_num_heads,10
+batch_size,1024
+beta,0.02
+dataset,Beauty
+device,cuda:1
+dropout_rate,0.5
+gcn_layer,4
+hidden_units,50
+inference_only,False
+l2_emb,0.0001
+lr,0.0001
+maxlen,20
+num_blocks,2
+num_epochs,501
+num_heads,10
+state_dict_path,None
+train_dir,default
