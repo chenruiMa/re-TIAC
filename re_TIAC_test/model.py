@@ -1,3 +1,4 @@
+from os import stat
 import numpy as np
 import torch
 import sys
@@ -10,7 +11,7 @@ FLOAT_MIN = -sys.float_info.max
 
 
 class HTP(torch.nn.Module):
-    def __init__(self, user_num, item_num,cate_num, yearnum, monthnum, daynum, args,time_int,item_time_matirx,norm_adj,uc_adj):
+    def __init__(self, user_num, item_num,cate_num, yearnum, monthnum, daynum, args,time_int,item_time_matirx,norm_adj,uc_adj,ui_adj_test,uc_adj_test):
         super(HTP, self).__init__()
 
         self.user_num = user_num
@@ -32,6 +33,8 @@ class HTP(torch.nn.Module):
         dropout_list = [0.1, 0.1, 0.1, 0.1]
         self.norm_adj = norm_adj.to(self.dev)
         self.uc_adj = uc_adj.to(self.dev)
+        self.ui_adj_test = ui_adj_test.to(self.dev)
+        self.uc_adj_test = uc_adj_test.to(self.dev)
 
         self.n_layers = self.args.gcn_layer
         self.dropout_list = nn.ModuleList()
@@ -77,12 +80,19 @@ class HTP(torch.nn.Module):
         nn.init.xavier_uniform_(self.user_emb.weight)
         nn.init.xavier_uniform_(self.item_emb.weight)
 
-    def seq2feats(self, user_ids, log_seqs, year, month, day):
+    def seq2feats(self, user_ids, log_seqs, year, month, day,state):
         train = True
         if log_seqs.shape[0] == 1:
             train = False
+
+        if state == '1':
+            ui_adj = self.norm_adj
+            uc_adj = self.uc_adj
+        else:
+            ui_adj = self.ui_adj_test
+            uc_adj = self.uc_adj_test
         # item embedding
-        user_emb ,items_emb = self.UI(self.norm_adj)
+        user_emb ,items_emb = self.UI(ui_adj)
         # user_emb, categry_emb = self.UC(self.uc_adj)
         # con_loss2 = self.SSL_ci(user_emb , user_emb_c)
         
@@ -158,7 +168,7 @@ class HTP(torch.nn.Module):
         return log_feats, self.beta*con_loss, items_emb
 
     def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs):  # for training
-        log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day)
+        log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day,'1')
         
         pos_seqs = torch.LongTensor(pos_seqs).to(self.dev)
 
@@ -175,7 +185,7 @@ class HTP(torch.nn.Module):
 
     def predict(self, user_ids, log_seqs, item_indices, year, month, day):  # for inference
 
-        log_feats,con_loss,items_emb = self.seq2feats(user_ids, log_seqs, year, month, day, )
+        log_feats,con_loss,items_emb = self.seq2feats(user_ids, log_seqs, year, month, day, '0')
 
         final_feat = log_feats[:, -1, :]  # only use last QKV classifier, a waste
 

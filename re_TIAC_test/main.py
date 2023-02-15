@@ -54,12 +54,14 @@ def main():
     pprint(args)
     dataset = DateSet(args.dataset)
 
-    [user_train, user_valid, user_test, usernum, itemnum, yearnum, monthnum, daynum] = dataset.split_train_and_test()
-    [user_cate_train,user_cate_valid,user_cate_test,catenum] = dataset.split_cate_train_and_test()
+    [user_train, user_valid, user_test, usernum, itemnum, yearnum, monthnum, daynum,user_test_all_i] = dataset.split_train_and_test()
+    [user_cate_train,user_cate_valid,user_cate_test,catenum,user_test_all_c] = dataset.split_cate_train_and_test()
     time_int = dataset.time_int(user_train,user_valid)
 #     time_int = 0
     ui_adj = dataset.UIGraph(user_train)#u_i graph
     uc_adj = dataset.UCGraph(user_cate_train)#u_c graph
+    ui_adj_test = dataset.UIGraph(user_test_all_i)#u_i graph
+    uc_adj_test = dataset.UCGraph(user_test_all_c)#u_c graph
     
     print('split..Preparing done...')
 
@@ -77,7 +79,7 @@ def main():
 
     sampler = WarpSampler(user_train, usernum, itemnum, batch_size=args.batch_size, maxlen=args.maxlen, n_workers=1)
 
-    model = HTP(usernum, itemnum, catenum, yearnum, monthnum, daynum, args,time_int,dataset.adj_mat,ui_adj,uc_adj).to(args.device)
+    model = HTP(usernum, itemnum, catenum, yearnum, monthnum, daynum, args,time_int,dataset.adj_mat,ui_adj,uc_adj,ui_adj_test,uc_adj_test).to(args.device)
     
     for name, param in model.named_parameters():
         try:

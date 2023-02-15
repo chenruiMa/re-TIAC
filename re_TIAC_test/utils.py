@@ -84,6 +84,7 @@ class DateSet(object):
         user_train = {}
         user_valid = {}
         user_test = {}
+        user_test_all = {}
         for user in self.User_train:
             nfeedback = len(self.User_train[user])
             if nfeedback < 3:
@@ -96,13 +97,16 @@ class DateSet(object):
                 user_valid[user].append(self.User_train[user][-2])
                 user_test[user] = []
                 user_test[user].append(self.User_train[user][-1])
+                user_test_all[user] = self.User_train[user][:-1]
 
-        return [user_train, user_valid, user_test, self.user_num, self.item_num, self.year_num, self.month_num, self.day_num]
+
+        return [user_train, user_valid, user_test, self.user_num, self.item_num, self.year_num, self.month_num, self.day_num,user_test_all]
 
     def split_cate_train_and_test(self, ):
         user_train = {}
         user_valid = {}
         user_test = {}
+        user_test_all = {}
         for user in self.User_train_cate:
             nfeedback = len(self.User_train_cate[user])
             if nfeedback < 3:
@@ -115,8 +119,9 @@ class DateSet(object):
                 user_valid[user].append(self.User_train_cate[user][-2])
                 user_test[user] = []
                 user_test[user].append(self.User_train_cate[user][-1])
+                user_test_all[user] = self.User_train[user][:-1]
 
-        return [user_train, user_valid, user_test,self.cate_num]
+        return [user_train, user_valid, user_test,self.cate_num,user_test_all]
 
     def getItemtime(self):
         adj_mat = sp.dok_matrix((self.item_num, self.year_num + self.month_num + self.day_num), dtype=np.float32)
