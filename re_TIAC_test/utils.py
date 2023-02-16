@@ -164,7 +164,7 @@ class DateSet(object):
             # norm_adj = adj.dot(d_mat_inv)
             print('generate single-normalized adjacency matrix.')
             return norm_adj.tocoo()
-        norm_adj_mat = normalized_adj_single(adj_mat + sp.eye(adj_mat.shape[0]))
+        norm_adj_mat = normalized_adj_single(adj_mat)
         
         norm_time_adj = norm_adj_mat.tocsr()
         norm_time_adj = self._convert_sp_mat_to_sp_tensor(norm_time_adj).float()
@@ -203,7 +203,7 @@ class DateSet(object):
             # norm_adj = adj.dot(d_mat_inv)
             print('generate single-normalized adjacency matrix.')
             return norm_adj.tocoo()
-        norm_adj_mat = normalized_adj_single(adj_mat + sp.eye(adj_mat.shape[0]))
+        norm_adj_mat = normalized_adj_single(adj_mat)
         
         norm_time_adj = norm_adj_mat.tocsr()
         norm_time_adj = self._convert_sp_mat_to_sp_tensor(norm_time_adj).float()
