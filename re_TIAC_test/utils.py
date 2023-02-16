@@ -194,7 +194,7 @@ class DateSet(object):
 #         norm_time_adj = norm_time_adj.dot(d_mat)
         def normalized_adj_single(adj):
             rowsum = np.array(adj.sum(1))
-
+            np.seterr(divide='ignore', invalid='ignore')
             d_inv = np.power(rowsum, -0.5).flatten()
             d_inv[np.isinf(d_inv)] = 0.
             d_mat_inv = sp.diags(d_inv)

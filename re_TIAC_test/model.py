@@ -103,8 +103,8 @@ class HTP(torch.nn.Module):
         # item embedding
         user_emb ,items_emb = self.UI(ui_adj)
         user_emb_c, categry_emb = self.UC(uc_adj)
-        con_loss2 = self.SSL_ci(user_emb , user_emb_c)
-        
+        con_loss2 = self.SSL_ci(user_emb, user_emb_c)
+
         # items_emb = self.item_emb.weight
         seqs = items_emb[log_seqs].to(self.dev)
         # seqs = items_emb(torch.LongTensor(log_seqs).to(self.dev))
@@ -167,7 +167,6 @@ class HTP(torch.nn.Module):
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
         mu_all = self.mu_all.weight[user_ids].to(self.dev)
         sigma_all = self.sigma_all.weight[user_ids].to(self.dev)
-        
         E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Fu, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
         con_loss = self.SSL(Fu , Gu)
@@ -185,7 +184,6 @@ class HTP(torch.nn.Module):
         pos_embs = self.item_emb(pos_seqs)  # B *  N * d
 #         pos_embs = items_emb[pos_seqs]
         neg_seqs = torch.LongTensor(neg_seqs).to(self.dev)
-        # print(neg_seqs.shape, neg_seqs.max(), self.item_num, neg_seqs.min(), self.item_emb.weight.shape)
         neg_embs = self.item_emb(neg_seqs)
 #         neg_embs = items_emb[neg_seqs]
         pos_logits = (log_feats * pos_embs).sum(dim=-1)#128*25*50   *   128*25*50  =128*25
@@ -213,11 +211,9 @@ class HTP(torch.nn.Module):
         dst_time_embs = history_time_embs.unsqueeze(2)  # B * N * 1 * dim
         time_embs = (src_time_embs - dst_time_embs).sum(-1)  # B * N * N * d
 
-        paddings = torch.ones(time_embs.shape) * (-2 ** 32 + 1)  # -1e23 # float('-inf')
+        paddings = torch.ones(attention_mask.shape) * (-2 ** 32 + 1)  # -1e23 # float('-inf')
         paddings = paddings.to(self.dev)
-        attn_weights = torch.where(attention_mask, paddings, time_embs)  # enforcing causality
         intent_attention = torch.matmul(Fu, item_embs.permute(0, 2, 1))  # B* N * N
-        # print(intent_attention.shape, paddings.shape, attention_mask.shape)
         attn_weights = torch.where(attention_mask, paddings, intent_attention)   # enforcing causality
         intent_attention = self.softmax(attn_weights)
 
@@ -228,6 +224,7 @@ class HTP(torch.nn.Module):
         # sigmas = sigma.detach().numpy()
         change = -pi * torch.exp(-(self.delta_t - mu) ** 2 / (2 * sigma ** 2)/1000) / (math.sqrt(2 * pi) * sigma)
         change = change.to(self.dev)
+        change = torch.reshape(change, att_weight.shape)
         intent_attentions = att_weight + change
         intent_attentions = intent_attentions.unsqueeze(-1).repeat(1, 1, self.args.maxlen)
         final_intent = self.softmax(intent_attentions)
@@ -280,7 +277,6 @@ class HTP(torch.nn.Module):
         all_embeddings = [ego_embeddings]
         for i in range(self.n_layers):
             side_embeddings = torch.sparse.mm(adj, ego_embeddings)
-#             print(side_embeddings.device)
             sum_embeddings = F.leaky_relu(self.GC_Linear_list[i](side_embeddings))
             bi_embeddings = torch.mul(ego_embeddings, side_embeddings)
             bi_embeddings = F.leaky_relu(self.Bi_Linear_list[i](bi_embeddings))
@@ -303,7 +299,6 @@ class HTP(torch.nn.Module):
         all_embeddings = [ego_embeddings]
         for i in range(2):
             side_embeddings = torch.sparse.mm(adj, ego_embeddings)
-#             print(side_embeddings.device)
             sum_embeddings = F.leaky_relu(self.GC_Linear_list_c[i](side_embeddings))
             bi_embeddings = torch.mul(ego_embeddings, side_embeddings)
             bi_embeddings = F.leaky_relu(self.Bi_Linear_list_c[i](bi_embeddings))

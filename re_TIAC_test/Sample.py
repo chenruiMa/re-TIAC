@@ -5,15 +5,16 @@ import sys
 import copy
 from tqdm import tqdm
 
+
 def random_neq(l, r, s):
     t = np.random.randint(l, r)
     while t in s:
         t = np.random.randint(l, r)
     return t
 
+
 def Tafeng_sample_function(user_train, usernum, itemnum, batch_size, maxlen, result_queue, SEED):
     def sample(user):
-
 
         seq = np.zeros([maxlen], dtype=np.int32)
 
@@ -31,7 +32,7 @@ def Tafeng_sample_function(user_train, usernum, itemnum, batch_size, maxlen, res
         year_seq[idx + 1] = user_train[user][-1][1][0]
         day_seq[idx + 1] = user_train[user][-1][1][2]
         month_seq[idx + 1] = user_train[user][-1][1][1]
-        
+
         ts = set(map(lambda x: x[0], user_train[user]))
         for i in reversed(user_train[user][:-1]):
             seq[idx] = i[0]
@@ -64,13 +65,13 @@ class WarpSampler(object):
         for i in range(n_workers):
             self.processors.append(
                 Process(target=Tafeng_sample_function, args=(User,
-                                                      usernum,
-                                                      itemnum,
-                                                      batch_size,
-                                                      maxlen,
-                                                      self.result_queue,
-                                                      np.random.randint(2e9)
-                                                      )))
+                                                             usernum,
+                                                             itemnum,
+                                                             batch_size,
+                                                             maxlen,
+                                                             self.result_queue,
+                                                             np.random.randint(2e9)
+                                                             )))
             self.processors[-1].daemon = True
             self.processors[-1].start()
 
@@ -84,18 +85,19 @@ class WarpSampler(object):
 
 
 def evaluate(model, dataset, args):
-
-    [train, valid, test, usernum, itemnum, yearnum, monthnum, daynum, user_test_all] = copy.deepcopy(dataset.split_train_and_test())
+    [train, valid, test, usernum, itemnum, yearnum, monthnum, daynum, user_test_all] = copy.deepcopy(
+        dataset.split_train_and_test())
     NDCG = 0.0
     HT = 0.0
     MRR = 0.0
     valid_user = 0.0
-    if usernum>10000:
+    if usernum > 10000:
         users = random.sample(range(1, usernum), 10000)
     else:
         users = range(1, usernum)
     # users = range(1, usernum)
-    for u in tqdm(users,desc='Testing:'):
+    us, seqs, item_idxs, year_seqs, month_seqs, day_seqs = [], [], [], [], [], []
+    for u in users:
         # print(u, end=' ')
         if len(train[u]) < 1 or len(test[u]) < 1: continue
 
@@ -114,8 +116,7 @@ def evaluate(model, dataset, args):
         year_seq[idx + 1] = test[u][0][1][0]
         day_seq[idx + 1] = test[u][0][1][2]
         month_seq[idx + 1] = test[u][0][1][1]
-        
-        
+
         idx -= 1
         for i in reversed(train[u]):
             seq[idx] = i[0]
@@ -134,22 +135,49 @@ def evaluate(model, dataset, args):
             while t in rated: t = np.random.randint(1, itemnum)
             item_idx.append(t)
 
-        predictions = -model.predict(*[np.array(l) for l in [[u], [seq], item_idx, [year_seq], [month_seq],[day_seq]]])
-        predictions = predictions[0]
+        us.append(u)
+        seqs.append(seq)
+        item_idxs.append(item_idx)
+        year_seqs.append(year_seq)
+        day_seqs.append(day_seq)
+        month_seqs.append(month_seq)
 
-        rank = predictions.argsort().argsort()[0].item()
+    for step in tqdm(range(len(us) // 1000), 'Testing'):
+        u = np.vstack(us[step * 1000:(step + 1) * 1000])
+        seq = np.vstack(seqs[step * 1000:(step + 1) * 1000])
+        item_idx = np.vstack(item_idxs[step * 1000:(step + 1) * 1000])
+        year_seq = np.vstack(year_seqs[step * 1000:(step + 1) * 1000])
+        month_seq = np.vstack(month_seqs[step * 1000:(step + 1) * 1000])
+        day_seq = np.vstack(day_seqs[step * 1000:(step + 1) * 1000])
 
-        valid_user += 1
+        predictions = -model.predict(*[np.array(l) for l in [u, seq, item_idx, year_seq, month_seq, day_seq]])
+        # print(predictions.shape)
+        # predictions = predictions[0]
+        for pre in predictions:
+            rank = pre.argsort().argsort()[0].item()
+            valid_user += 1
+            if rank < 10:
+                NDCG += 1 / np.log2(rank + 2)
+                HT += 1
+                MRR += 1 / (rank + 1)
 
-        if rank < 10:
-            NDCG += 1 / np.log2(rank + 2)
-            HT += 1
-            MRR += 1 /(rank + 1)
-#         if valid_user % 5000 == 0:
-#             print('.', end='')
-#             sys.stdout.flush()
+        # predictions = -model.predict(*[np.array(l) for l in [[u], [seq], item_idx, [year_seq], [month_seq], [day_seq]]])
+        # predictions = predictions[0]
+        #
+        # rank = predictions.argsort().argsort()[0].item()
+        #
+        # valid_user += 1
+        #
+        # if rank < 10:
+        #     NDCG += 1 / np.log2(rank + 2)
+        #     HT += 1
+        #     MRR += 1 / (rank + 1)
+    #         if valid_user % 5000 == 0:
+    #             print('.', end='')
+    #             sys.stdout.flush()
 
     return NDCG / valid_user, HT / valid_user, MRR / valid_user
+
 
 # ignored
 def evaluate_valid(model, dataset, args):
@@ -200,7 +228,7 @@ def evaluate_valid(model, dataset, args):
         if rank < 10:
             NDCG += 1 / np.log2(rank + 2)
             HT += 1
-            
+
         if valid_user % 1000 == 0:
             print('.', end='')
             sys.stdout.flush()

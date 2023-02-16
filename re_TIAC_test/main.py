@@ -132,7 +132,7 @@ def main():
     for epoch in range(epoch_start_idx, args.num_epochs + 1):
         
         if args.inference_only: break # just to decrease identition
-        for step in tqdm(range(num_batch),desc='Training:'):
+        for step in tqdm(range(num_batch),desc='Training'):
             # (user, seq, year_seq, month_seq, day_seq, pos, neg)
             u, seq, year, month,day, pos, neg = sampler.next_batch() # tuples to ndarray
             u, seq, pos, neg = np.array(u), np.array(seq), np.array(pos), np.array(neg)
