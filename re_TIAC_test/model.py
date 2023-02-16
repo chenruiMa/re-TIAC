@@ -37,6 +37,7 @@ class HTP(torch.nn.Module):
         self.uc_adj_test = uc_adj_test.to(self.dev)
 
         self.n_layers = self.args.gcn_layer
+        #ui_graph
         self.dropout_list = nn.ModuleList()
         self.GC_Linear_list = nn.ModuleList()
         self.Bi_Linear_list = nn.ModuleList()
@@ -45,7 +46,15 @@ class HTP(torch.nn.Module):
             self.GC_Linear_list.append(nn.Linear(self.weight_size[i], self.weight_size[i+1]))
             self.Bi_Linear_list.append(nn.Linear(self.weight_size[i], self.weight_size[i+1]))
             self.dropout_list.append(nn.Dropout(dropout_list[i]))
-
+        #uc_graph
+        self.dropout_list_c = nn.ModuleList()
+        self.GC_Linear_list_c = nn.ModuleList()
+        self.Bi_Linear_list_c = nn.ModuleList()
+        self.weight_size = [args.hidden_units] + self.weight_size
+        for i in range(self.n_layers):
+            self.GC_Linear_list_c.append(nn.Linear(self.weight_size[i], self.weight_size[i + 1]))
+            self.Bi_Linear_list_c.append(nn.Linear(self.weight_size[i], self.weight_size[i + 1]))
+            self.dropout_list_c.append(nn.Dropout(dropout_list[i]))
 
 
         # TODO: loss += args.l2_emb for regularizing embedding vectors during training
@@ -165,6 +174,7 @@ class HTP(torch.nn.Module):
         # Fusion
         log_feats = E_recom+self.last_layernorm(Fu)
 #         log_feats = E_recom
+        #TODO：两个图之间的协同信息需进行进一步探索
         return log_feats, self.beta * con_loss + self.beta * con_loss2, items_emb
 
     def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs):  # for training
@@ -287,17 +297,18 @@ class HTP(torch.nn.Module):
         return u_g_embeddings, i_g_embeddings
 
     #NGCF user and category
+    #TODO：卷积层数需要进行尝试
     def UC(self,adj):
         ego_embeddings = torch.cat((self.user_emb.weight, self.category_emb.weight), dim=0).to(self.dev)
         all_embeddings = [ego_embeddings]
-        for i in range(self.n_layers):
+        for i in range(2):
             side_embeddings = torch.sparse.mm(adj, ego_embeddings)
 #             print(side_embeddings.device)
-            sum_embeddings = F.leaky_relu(self.GC_Linear_list[i](side_embeddings))
+            sum_embeddings = F.leaky_relu(self.GC_Linear_list_c[i](side_embeddings))
             bi_embeddings = torch.mul(ego_embeddings, side_embeddings)
-            bi_embeddings = F.leaky_relu(self.Bi_Linear_list[i](bi_embeddings))
+            bi_embeddings = F.leaky_relu(self.Bi_Linear_list_c[i](bi_embeddings))
             ego_embeddings = sum_embeddings + bi_embeddings
-            ego_embeddings = self.dropout_list[i](ego_embeddings)
+            ego_embeddings = self.dropout_list_c[i](ego_embeddings)
 
             norm_embeddings = F.normalize(ego_embeddings, p=2, dim=1)
             all_embeddings += [norm_embeddings]
