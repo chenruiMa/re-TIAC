@@ -174,7 +174,7 @@ class HTP(torch.nn.Module):
         log_feats = E_recom+self.last_layernorm(Fu)
 #         log_feats = E_recom
         #TODO：两个图之间的协同信息需进行进一步探索
-        return log_feats, self.beta * con_loss + self.beta * con_loss2, items_emb
+        return log_feats, self.beta * con_loss + self.args.beta_c * con_loss2, items_emb
 
     def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs):  # for training
         log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day,'1')
@@ -297,7 +297,7 @@ class HTP(torch.nn.Module):
     def UC(self,adj):
         ego_embeddings = torch.cat((self.user_emb.weight, self.category_emb.weight), dim=0).to(self.dev)
         all_embeddings = [ego_embeddings]
-        for i in range(2):
+        for i in range(self.args.gcn_layer_c):
             side_embeddings = torch.sparse.mm(adj, ego_embeddings)
             sum_embeddings = F.leaky_relu(self.GC_Linear_list_c[i](side_embeddings))
             bi_embeddings = torch.mul(ego_embeddings, side_embeddings)

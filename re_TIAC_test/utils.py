@@ -16,6 +16,7 @@ class DateSet(object):
 
     def data_partition(self, ):
         user_train = defaultdict(list)
+        user_train_5 = defaultdict(list)
         with open(self.train_path, 'r') as f:
             for line in f.readlines():
                 u, i, c, timestamp = line.rstrip().split(' ')
@@ -27,7 +28,10 @@ class DateSet(object):
                 except:
                     timestamp = float(timestamp)
                 user_train[u].append([i, c, timestamp])
-        return user_train
+        for u in user_train:
+            if len(user_train[u]) > 5:
+                user_train_5[u] = user_train[u]
+        return user_train_5
 
     def mappingAndSort(self, user_train):
 
