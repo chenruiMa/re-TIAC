@@ -144,7 +144,7 @@ class DateSet(object):
         adj_mats = sp.dok_matrix((self.user_num, self.cate_num), dtype=np.float32)
         for u, info in data.items():
             for i in info:
-                adj_mats[u, i[0]] += 1
+                adj_mats[u, i[0]] = 1
 
         adj_mat = sp.dok_matrix((self.user_num + self.cate_num, self.user_num + self.cate_num), dtype=np.float32)
         adj_mat = adj_mat.tolil()
@@ -175,7 +175,7 @@ class DateSet(object):
         adj_mats = sp.dok_matrix((self.user_num, self.item_num), dtype=np.float32)
         for u, info in data.items():
             for i in info:
-                adj_mats[u, i[0]] += 1
+                adj_mats[u, i[0]] = 1
         adj_mat = sp.dok_matrix((self.user_num + self.item_num, self.user_num + self.item_num), dtype=np.float32)
         adj_mat = adj_mat.tolil()
         R = adj_mats.tolil()
