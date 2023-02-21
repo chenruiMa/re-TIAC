@@ -16,9 +16,10 @@ def set_seed(seed):
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
     torch.manual_seed(seed)
-def main():    
+
+def main(seed, n, beta):
     torch.set_num_threads(1)
-    set_seed(2021)
+    set_seed(seed)
     def str2bool(s):
         if s not in {'false', 'true'}:
             raise ValueError('Not a valid boolean string')
@@ -31,14 +32,14 @@ def main():
     parser.add_argument('--lr', default=0.0001, type=float)
     parser.add_argument('--maxlen', default=20, type=int)
     parser.add_argument('--beta', default=0.02, type=float)
-    parser.add_argument('--beta_c', default=0.02, type=float)
+    parser.add_argument('--beta_c', default=beta, type=float)
     parser.add_argument('--hidden_units', default=50, type=int)
     parser.add_argument('--num_blocks', default=2, type=int)
-    parser.add_argument('--num_epochs', default=501, type=int)
+    parser.add_argument('--num_epochs', default=601, type=int)
     parser.add_argument('--num_heads', default=10, type=int)
     parser.add_argument('--abs_num_heads', default=10, type=int)
     parser.add_argument('--gcn_layer', default=4, type=int)
-    parser.add_argument('--gcn_layer_c', default=2, type=int)
+    parser.add_argument('--gcn_layer_c', default=n, type=int)
     
     parser.add_argument('--dropout_rate', default=0.5, type=float)
     parser.add_argument('--l2_emb', default=0.0001, type=float)
@@ -196,8 +197,28 @@ def main():
     sampler.close()
     print("Done")
     print("max NDCG is {}, max HR is {} max MRR is {}".format(max_ndcg, max_hr, max_mrr))
+    return max_ndcg,max_hr,max_mrr
 
 
 if __name__ == '__main__':
-    main()
-    
+    fs = open(os.path.join('parameter_' + 'log.txt'), 'w')
+    fs.write('--------------------------------------------------------\n\n\n\n')
+    fs.flush()
+    gcn_layer_c = [4]
+    beta_c = [0.02]
+    seeds = [2022, 2020, 2021]
+    for n in gcn_layer_c:
+        for beta in beta_c:
+            NDCG = []
+            HR = []
+            MRR = []
+            for seed in seeds:
+                max_ndcg,max_hr,max_mrr = main(seed, n, beta)
+                NDCG.append(max_ndcg)
+                HR.append(max_hr)
+                MRR.append(max_mrr)
+            fs.write('gcn_layer_c:' + str(n) + ' beta_c:' + str(beta) + '\n')
+            fs.write('result: NDCG:' + str(sum(NDCG)/len(NDCG)) + ' HR:' + str(sum(HR)/len(HR)) + ' MRR:' + str(sum(MRR)/len(MRR))+ '\n')
+            fs.flush()
+    fs.close()
+

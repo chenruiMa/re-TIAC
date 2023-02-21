@@ -157,8 +157,12 @@ class HTP(torch.nn.Module):
         # time_matrices = src_time_embs - dst_time_embs
 
         Fu, _ = self.GRU(seqs)
-        Gu = user_emb[user_ids]
-        Gu = Gu.unsqueeze(1)
+        if state == '1':
+            Gu = user_emb[user_ids].unsqueeze(1)
+        else:
+            Gu = user_emb[user_ids]
+        Gu = Gu.repeat(1, self.args.maxlen,1)
+        # Gu = Gu.unsqueeze(1)
         
 #         con_loss = 0
         int_seq = Fu - seqs
@@ -167,9 +171,9 @@ class HTP(torch.nn.Module):
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
         mu_all = self.mu_all.weight[user_ids].to(self.dev)
         sigma_all = self.sigma_all.weight[user_ids].to(self.dev)
-        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Fu, attention_mask,mu_all,sigma_all)
+        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Gu, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
-        con_loss = self.SSL(Fu , Gu)
+        con_loss = self.SSL(Fu, Gu)
         # Fusion
         log_feats = E_recom+self.last_layernorm(Fu)
 #         log_feats = E_recom
@@ -244,12 +248,13 @@ class HTP(torch.nn.Module):
         def row_column_shuffle(embedding):
             corrupted_embedding = embedding[torch.randperm(embedding.size()[0])]
             corrupted_embedding = corrupted_embedding[:,torch.randperm(corrupted_embedding.size()[1])]
-            corrupted_embedding = corrupted_embedding[:,:,torch.randperm(corrupted_embedding.size()[2])]
+            # corrupted_embedding = corrupted_embedding[:,:,torch.randperm(corrupted_embedding.size()[2])]
             return corrupted_embedding
         def score(x1, x2):
             return torch.mean(torch.mul(x1, x2), 1)
 #             return torch.cosine_similarity(x1, x2, dim=0)
         Fu = Fu[:,-1,:]
+        Gu = Gu[:,-1,:]
         pos = score(Fu, Gu).to(self.dev)
         neg1 = score(Fu, row_column_shuffle(Gu)).to(self.dev)
         one = torch.FloatTensor(pos.shape).fill_(1).to(self.dev)
