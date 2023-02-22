@@ -59,7 +59,9 @@ def main(seed, n, beta):
 
     [user_train, user_valid, user_test, usernum, itemnum, yearnum, monthnum, daynum,user_test_all_i] = dataset.split_train_and_test()
     [user_cate_train,user_cate_valid,user_cate_test,catenum,user_test_all_c] = dataset.split_cate_train_and_test()
-    time_int = dataset.time_int(user_train,user_valid)
+    time_int_train = dataset.time_int(user_train,user_valid)
+    time_int_test = dataset.time_int(user_test_all_i, user_test)
+
 #     time_int = 0
     ui_adj = dataset.UIGraph(user_train)#u_i graph
     uc_adj = dataset.UCGraph(user_cate_train)#u_c graph
@@ -82,7 +84,7 @@ def main(seed, n, beta):
 
     sampler = WarpSampler(user_train, usernum, itemnum, batch_size=args.batch_size, maxlen=args.maxlen, n_workers=1)
 
-    model = HTP(usernum, itemnum, catenum, yearnum, monthnum, daynum, args,time_int,dataset.adj_mat,ui_adj,uc_adj,ui_adj_test,uc_adj_test).to(args.device)
+    model = HTP(usernum, itemnum, catenum, yearnum, monthnum, daynum, args,dataset.adj_mat,ui_adj,uc_adj,ui_adj_test,uc_adj_test).to(args.device)
     
     for name, param in model.named_parameters():
         try:
@@ -140,7 +142,7 @@ def main(seed, n, beta):
             u, seq, year, month,day, pos, neg = sampler.next_batch() # tuples to ndarray
             u, seq, pos, neg = np.array(u), np.array(seq), np.array(pos), np.array(neg)
             year, month, day = np.array(year), np.array(month), np.array(day)
-            pos_logits, neg_logits,con_loss = model(u, seq, year, month, day, pos, neg, )
+            pos_logits, neg_logits,con_loss = model(u, seq, year, month, day, pos, neg, time_int_train)
             pos_labels, neg_labels = torch.ones(pos_logits.shape, device=args.device), torch.zeros(neg_logits.shape, device=args.device)
             adam_optimizer.zero_grad()
             indices = np.where(pos != 0)
@@ -171,7 +173,7 @@ def main(seed, n, beta):
             t1 = time.time() - t0
             T += t1
             # print('testing', end='')
-            t_test = evaluate(model, dataset, args)
+            t_test = evaluate(model, dataset, args,time_int_train)
             #             t_valid = evaluate_valid(model, dataset, args)
             print("epoch is {},NDCG is {}, HR is {} MRR is {} time is {}".format(epoch, t_test[0], t_test[1], t_test[2], time.time()-t0))
             t0 = time.time()
@@ -206,7 +208,7 @@ if __name__ == '__main__':
     fs.flush()
     gcn_layer_c = [4]
     beta_c = [0.02]
-    seeds = [2022, 2020, 2021]
+    seeds = [2022]
     for n in gcn_layer_c:
         for beta in beta_c:
             NDCG = []

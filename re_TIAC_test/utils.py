@@ -29,7 +29,7 @@ class DateSet(object):
                     timestamp = float(timestamp)
                 user_train[u].append([i, c, timestamp])
         for u in user_train:
-            if len(user_train[u]) > 5:
+            if len(user_train[u]) > 4:
                 user_train_5[u] = user_train[u]
         return user_train_5
 

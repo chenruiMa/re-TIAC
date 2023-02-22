@@ -11,7 +11,7 @@ FLOAT_MIN = -sys.float_info.max
 
 
 class HTP(torch.nn.Module):
-    def __init__(self, user_num, item_num,cate_num, yearnum, monthnum, daynum, args,time_int,item_time_matirx,norm_adj,uc_adj,ui_adj_test,uc_adj_test):
+    def __init__(self, user_num, item_num,cate_num, yearnum, monthnum, daynum, args,item_time_matirx,norm_adj,uc_adj,ui_adj_test,uc_adj_test):
         super(HTP, self).__init__()
 
         self.user_num = user_num
@@ -20,7 +20,6 @@ class HTP(torch.nn.Module):
         self.year_num = yearnum
         self.day_num = daynum
         self.month_num = monthnum
-        self.time_int = time_int
 
 
         self.args = args
@@ -89,7 +88,8 @@ class HTP(torch.nn.Module):
         nn.init.xavier_uniform_(self.user_emb.weight)
         nn.init.xavier_uniform_(self.item_emb.weight)
 
-    def seq2feats(self, user_ids, log_seqs, year, month, day,state):
+    def seq2feats(self, user_ids, log_seqs, year, month, day,state,time_int):
+        self.time_int = time_int
         train = True
         if log_seqs.shape[0] == 1:
             train = False
@@ -171,7 +171,7 @@ class HTP(torch.nn.Module):
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
         mu_all = self.mu_all.weight[user_ids].to(self.dev)
         sigma_all = self.sigma_all.weight[user_ids].to(self.dev)
-        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Gu, attention_mask,mu_all,sigma_all)
+        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Fu, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
         con_loss = self.SSL(Fu, Gu)
         # Fusion
@@ -180,8 +180,8 @@ class HTP(torch.nn.Module):
         #TODO：两个图之间的协同信息需进行进一步探索
         return log_feats, self.beta * con_loss + self.args.beta_c * con_loss2, items_emb
 
-    def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs):  # for training
-        log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day,'1')
+    def forward(self, user_ids, log_seqs, year, month, day, pos_seqs, neg_seqs,time_int):  # for training
+        log_feats , con_loss, items_emb = self.seq2feats(user_ids, log_seqs, year, month, day,'1',time_int)
         
         pos_seqs = torch.LongTensor(pos_seqs).to(self.dev)
 
@@ -195,9 +195,9 @@ class HTP(torch.nn.Module):
 
         return pos_logits, neg_logits, con_loss  # pos_pred, neg_pred
 
-    def predict(self, user_ids, log_seqs, item_indices, year, month, day):  # for inference
+    def predict(self, user_ids, log_seqs, item_indices, year, month, day,time_int):  # for inference
 
-        log_feats,con_loss,items_emb = self.seq2feats(user_ids, log_seqs, year, month, day, '0')
+        log_feats,con_loss,items_emb = self.seq2feats(user_ids, log_seqs, year, month, day, '0',time_int)
 
         final_feat = log_feats[:, -1, :]  # only use last QKV classifier, a waste
 

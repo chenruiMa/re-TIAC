@@ -84,7 +84,7 @@ class WarpSampler(object):
             p.join()
 
 
-def evaluate(model, dataset, args):
+def evaluate(model, dataset, args,time_int_train):
     [train, valid, test, usernum, itemnum, yearnum, monthnum, daynum, user_test_all] = copy.deepcopy(
         dataset.split_train_and_test())
     NDCG = 0.0
@@ -150,7 +150,7 @@ def evaluate(model, dataset, args):
         month_seq = np.vstack(month_seqs[step * 1000:(step + 1) * 1000])
         day_seq = np.vstack(day_seqs[step * 1000:(step + 1) * 1000])
 
-        predictions = -model.predict(*[np.array(l) for l in [u, seq, item_idx, year_seq, month_seq, day_seq]])
+        predictions = -model.predict(*[np.array(l) for l in [u, seq, item_idx, year_seq, month_seq, day_seq,time_int_train]])
         # print(predictions.shape)
         # predictions = predictions[0]
         for pre in predictions:
