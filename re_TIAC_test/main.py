@@ -26,11 +26,11 @@ def main(seed, n, beta):
         return s == 'true'
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='Beauty', help='Sports | Beauty | Cloth | Tafeng | amazon_all')
+    parser.add_argument('--dataset', default='Sports_and_Outdoors', help='Sports_and_Outdoors | Beauty ')
     parser.add_argument('--train_dir', default='default')
     parser.add_argument('--batch_size', default=1024, type=int)
     parser.add_argument('--lr', default=0.0001, type=float)
-    parser.add_argument('--maxlen', default=20, type=int)
+    parser.add_argument('--maxlen', default=15, type=int)
     parser.add_argument('--beta', default=0.02, type=float)
     parser.add_argument('--beta_c', default=beta, type=float)
     parser.add_argument('--hidden_units', default=50, type=int)
@@ -59,8 +59,8 @@ def main(seed, n, beta):
 
     [user_train, user_valid, user_test, usernum, itemnum, yearnum, monthnum, daynum,user_test_all_i] = dataset.split_train_and_test()
     [user_cate_train,user_cate_valid,user_cate_test,catenum,user_test_all_c] = dataset.split_cate_train_and_test()
-    time_int_train = dataset.time_int(user_train,user_valid)
-    time_int_test = dataset.time_int(user_test_all_i, user_test)
+    time_int_train = dataset.time_int(user_train,user_valid,args)
+    time_int_test = dataset.time_int(user_test_all_i, user_test,args)
 
 #     time_int = 0
     ui_adj = dataset.UIGraph(user_train)#u_i graph
@@ -173,7 +173,7 @@ def main(seed, n, beta):
             t1 = time.time() - t0
             T += t1
             # print('testing', end='')
-            t_test = evaluate(model, dataset, args,time_int_train)
+            t_test = evaluate(model, dataset, args,time_int_test)
             #             t_valid = evaluate_valid(model, dataset, args)
             print("epoch is {},NDCG is {}, HR is {} MRR is {} time is {}".format(epoch, t_test[0], t_test[1], t_test[2], time.time()-t0))
             t0 = time.time()

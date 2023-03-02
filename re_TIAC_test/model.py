@@ -162,6 +162,7 @@ class HTP(torch.nn.Module):
         else:
             Gu = user_emb[user_ids]
         Gu = Gu.repeat(1, self.args.maxlen,1)
+        Gu_seq  = Gu + abs_pos_embs + item_time_emb
         # Gu = Gu.unsqueeze(1)
         
 #         con_loss = 0
@@ -171,7 +172,7 @@ class HTP(torch.nn.Module):
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
         mu_all = self.mu_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
         sigma_all = self.sigma_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
-        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Fu, attention_mask,mu_all,sigma_all)
+        E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Gu_seq, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
         con_loss = self.SSL(Fu, Gu)
         # Fusion

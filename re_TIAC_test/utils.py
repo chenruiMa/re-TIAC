@@ -232,13 +232,13 @@ class DateSet(object):
     def get_year_key(self,value):
         return [k for k, v in self.y_map_csv.items() if v == value]
 
-    def time_int(self,user_train,user_valid):
+    def time_int(self,user_train,user_valid,args):
     # 购买时间序列
-        his_time = np.zeros([len(user_train) + 1, 20])
+        his_time = np.zeros([len(user_train) + 1, args.maxlen])
         for i, row in enumerate(user_train):
             for j, val in enumerate(user_train[row]):
-                if (20 - len(user_train[row]) + j) >= 0:
-                    his_time[row][20 - len(user_train[row]) + j] = self.date_conversation(
+                if (args.maxlen - len(user_train[row]) + j) >= 0:
+                    his_time[row][args.maxlen - len(user_train[row]) + j] = self.date_conversation(
                         self.get_year_key(user_train[row][j][1][0])[0], user_train[row][j][1][2])
     # 推荐时间
         user_rec = np.zeros([len(user_train) + 1, 1])
@@ -246,7 +246,7 @@ class DateSet(object):
             if len(user_valid[row]) > 0:
                 user_rec[row][0] = self.date_conversation(self.get_year_key(user_valid[row][0][1][0])[0], user_valid[row][0][1][2])
     #时间差
-        time_int = np.zeros([len(user_train) + 1, 20])
+        time_int = np.zeros([len(user_train) + 1, args.maxlen])
         for i, row in enumerate(user_rec):
             if row > 0:
                 a = user_rec[i]
