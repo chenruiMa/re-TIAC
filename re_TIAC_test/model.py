@@ -64,8 +64,8 @@ class HTP(torch.nn.Module):
         self.year_emb = torch.nn.Embedding(self.year_num, args.hidden_units, padding_idx=0)
         self.month_emb = torch.nn.Embedding(self.month_num, args.hidden_units, padding_idx=0)
         self.day_emb = torch.nn.Embedding(self.day_num, args.hidden_units, padding_idx=0)
-        self.mu_all = torch.nn.Embedding(self.user_num, args.maxlen)
-        self.sigma_all = torch.nn.Embedding(self.user_num, args.maxlen)
+        self.mu_all = torch.nn.Embedding(self.user_num, self.item_num)
+        self.sigma_all = torch.nn.Embedding(self.user_num, self.item_num)
 
         self.item_emb_dropout = torch.nn.Dropout(p=args.dropout_rate)
         self.year_emb_dropout = torch.nn.Dropout(p=args.dropout_rate)
@@ -169,13 +169,13 @@ class HTP(torch.nn.Module):
 #         Iu,_ = self.GRU(int_seq)
 
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
-        mu_all = self.mu_all.weight[user_ids].to(self.dev)
-        sigma_all = self.sigma_all.weight[user_ids].to(self.dev)
+        mu_all = self.mu_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
+        sigma_all = self.sigma_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
         E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Fu, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
         con_loss = self.SSL(Fu, Gu)
         # Fusion
-        log_feats = E_recom+self.last_layernorm(Fu)
+        log_feats =E_recom +  self.last_layernorm(Fu)
 #         log_feats = E_recom
         #TODO：两个图之间的协同信息需进行进一步探索
         return log_feats, self.beta * con_loss + self.args.beta_c * con_loss2, items_emb
@@ -226,7 +226,8 @@ class HTP(torch.nn.Module):
         pi = 3.14
         # mus = mu.detach().numpy()
         # sigmas = sigma.detach().numpy()
-        change = -pi * torch.exp(-(self.delta_t - mu) ** 2 / (2 * sigma ** 2)/1000) / (math.sqrt(2 * pi) * sigma)
+        delta_t = torch.reshape(self.delta_t, mu.shape)
+        change = -pi * torch.exp(-(delta_t - mu) ** 2 / (2 * sigma ** 2)/1000) / (math.sqrt(2 * pi) * sigma)
         change = change.to(self.dev)
         change = torch.reshape(change, att_weight.shape)
         intent_attentions = att_weight + change

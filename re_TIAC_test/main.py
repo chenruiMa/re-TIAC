@@ -35,7 +35,7 @@ def main(seed, n, beta):
     parser.add_argument('--beta_c', default=beta, type=float)
     parser.add_argument('--hidden_units', default=50, type=int)
     parser.add_argument('--num_blocks', default=2, type=int)
-    parser.add_argument('--num_epochs', default=601, type=int)
+    parser.add_argument('--num_epochs', default=501, type=int)
     parser.add_argument('--num_heads', default=10, type=int)
     parser.add_argument('--abs_num_heads', default=10, type=int)
     parser.add_argument('--gcn_layer', default=4, type=int)
