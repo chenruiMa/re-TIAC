@@ -28,8 +28,8 @@ class HTP(torch.nn.Module):
         self.beta = args.beta
         self.item_time_matrix = item_time_matirx.to(self.dev)
         #graph
-        self.weight_size = [args.hidden_units, args.hidden_units, args.hidden_units, args.hidden_units]
-        dropout_list = [0.1, 0.1, 0.1, 0.1]
+        self.weight_size = [args.hidden_units, args.hidden_units, args.hidden_units, args.hidden_units, args.hidden_units]
+        dropout_list = [0.1, 0.1, 0.1, 0.1, 0.1]
         self.norm_adj = norm_adj.to(self.dev)
         self.uc_adj = uc_adj.to(self.dev)
         self.ui_adj_test = ui_adj_test.to(self.dev)
@@ -50,7 +50,7 @@ class HTP(torch.nn.Module):
         self.GC_Linear_list_c = nn.ModuleList()
         self.Bi_Linear_list_c = nn.ModuleList()
         self.weight_size = [args.hidden_units] + self.weight_size
-        for i in range(self.n_layers):
+        for i in range(self.args.gcn_layer_c):
             self.GC_Linear_list_c.append(nn.Linear(self.weight_size[i], self.weight_size[i + 1]))
             self.Bi_Linear_list_c.append(nn.Linear(self.weight_size[i], self.weight_size[i + 1]))
             self.dropout_list_c.append(nn.Dropout(dropout_list[i]))
@@ -170,8 +170,10 @@ class HTP(torch.nn.Module):
 #         Iu,_ = self.GRU(int_seq)
 
         self.delta_t = torch.Tensor(self.time_int[user_ids]).to(self.dev)
-        mu_all = self.mu_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
-        sigma_all = self.sigma_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs].to(self.dev)
+        mu_all = self.mu_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs]
+        mu_all = mu_all.to(self.dev)
+        sigma_all = self.sigma_all.weight[user_ids.reshape([log_seqs.shape[0], 1]), log_seqs]
+        sigma_all = sigma_all.to(self.dev)
         E_recom = self.perdiction_time_process(perdiction_time_embs, history_time_embs, seqs, Gu_seq, attention_mask,mu_all,sigma_all)
         E_recom = self.last_layernorm(E_recom)
         con_loss = self.SSL(Fu, Gu)
